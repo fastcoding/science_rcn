@@ -21,11 +21,12 @@ import numpy as np
 import os
 from multiprocessing import Pool
 from functools import partial
-from scipy.misc import imresize
-from scipy.ndimage import imread
+# from scipy.misc import imresize
+from PIL import Image
+# from scipy.ndimage import imread
 
-from science_rcn.inference import test_image
-from science_rcn.learning import train_image
+from inference import test_image
+from learning import train_image
 
 LOG = logging.getLogger(__name__)
 
@@ -92,7 +93,7 @@ def run_experiment(data_dir='data/MNIST',
     correct = 0
     for test_idx, (winner_idx, _) in enumerate(test_results):
         correct += int(test_data[test_idx][1]) == winner_idx // (train_size // 10)
-    print "Total test accuracy = {}".format(float(correct) / len(test_results))
+    print("Total test accuracy = {}".format(float(correct) / len(test_results)))
 
     return all_model_factors, test_results
 
@@ -144,7 +145,8 @@ def get_mnist_data_iters(data_dir, train_size, test_size,
             for fname in samples:
                 filepath = os.path.join(cat_path, fname)
                 # Resize and pad the images to (200, 200)
-                image_arr = imresize(imread(filepath), (112, 112))
+                with  Image.open(filepath) as im:
+                    image_arr = im.resize((112, 112),resample=Image.NEAREST)
                 img = np.pad(image_arr,
                              pad_width=tuple([(p, p) for p in (44, 44)]),
                              mode='constant', constant_values=0)

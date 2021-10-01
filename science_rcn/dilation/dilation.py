@@ -1,7 +1,7 @@
 """Fast 2D dilation."""
 import numpy as np
 
-from _dilation import max_filter1d, brute_max_filter1d
+from ._dilation import max_filter1d, brute_max_filter1d
 
 
 def dilate_2d(layer, pool_shape, output=None):

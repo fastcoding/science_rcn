@@ -131,7 +131,7 @@ def generate_suppression_masks(filter_scale=4., num_orients=16):
     # Compute for orientations [0, pi), then flip for [pi, 2*pi)
     for i, angle in enumerate(np.linspace(0., np.pi, num_orients // 2, endpoint=False)):
         x, y = np.cos(angle), np.sin(angle)
-        for r in xrange(1, int(np.sqrt(2) * size / 2)):
+        for r in range(1, int(np.sqrt(2) * size / 2)):
             dx, dy = round(r * x), round(r * y)
             if abs(dx) > cx or abs(dy) > cy:
                 continue

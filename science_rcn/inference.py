@@ -6,14 +6,13 @@ This code is an unoptimized version of what was used to produce the results in t
 Note that we use a faster implementation of 2D dilation, instead of the slower
 scipy.ndimage.morphology.grey_dilation.
 """
-from itertools import izip
 import logging
 import numpy as np
 import networkx as nx
 from numpy.random import rand, randint
 
-from science_rcn.dilation.dilation import dilate_2d
-from science_rcn.preproc import Preproc
+from dilation.dilation import dilate_2d
+from preproc import Preproc
 
 LOG = logging.getLogger(__name__)
 
@@ -55,23 +54,27 @@ def test_image(img, model_factors,
     bu_msg = preproc_layer.fwd_infer(img)
 
     # Forward pass inference
-    fp_scores = np.zeros(len(model_factors[0]))
-    for i, (frcs, _, graph) in enumerate(izip(*model_factors)):
-        fp_scores[i] = forward_pass(frcs,
-                                    bu_msg,
-                                    graph,
-                                    pool_shape)
-    top_candidates = np.argsort(fp_scores)[-num_candidates:]
+    model_factors = list(model_factors)
 
-    # Backward pass inference
     winner_idx, winner_score = (-1, -np.inf)  # (training feature idx, score)
-    for idx in top_candidates:
-        frcs, edge_factors = model_factors[0][idx], model_factors[1][idx]
-        rcn_inf = LoopyBPInference(bu_msg, frcs, edge_factors, pool_shape, preproc_layer,
-                                   n_iters=n_iters, damping=damping)
-        score = rcn_inf.bwd_pass()
-        if score >= winner_score:
-            winner_idx, winner_score = (idx, score)
+    if len(model_factors)>0:
+        nfactors=len(model_factors[0])
+        fp_scores = np.zeros(nfactors)
+        for i, (frcs, _, graph) in enumerate(zip(*model_factors)):
+            fp_scores[i] = forward_pass(frcs,
+                                        bu_msg,
+                                        graph,
+                                        pool_shape)
+        top_candidates = np.argsort(fp_scores)[-num_candidates:]
+
+        # Backward pass inference
+        for idx in top_candidates:
+            frcs, edge_factors = model_factors[0][idx], model_factors[1][idx]
+            rcn_inf = LoopyBPInference(bu_msg, frcs, edge_factors, pool_shape, preproc_layer,
+                                       n_iters=n_iters, damping=damping)
+            score = rcn_inf.bwd_pass()
+            if score >= winner_score:
+                winner_idx, winner_score = (idx, score)
     return winner_idx, winner_score
 
 
@@ -148,7 +151,7 @@ def get_tree_schedule(frcs, graph):
         each row represents a single outgoing factor message computation.
     """
     min_tree = nx.minimum_spanning_tree(graph, 'perturb_radius')
-    return np.array([(target, source, graph.edge[source][target]['perturb_radius'])
+    return np.array([(target, source, graph[source][target]['perturb_radius'])
                      for source, target in nx.dfs_edges(min_tree)])[::-1]
 
 
@@ -315,7 +318,7 @@ class LoopyBPInference(object):
         """Parallel loopy BP message passing, modifying state of `lat_messages`.
         See bwd_pass() for parameters.
         """
-        for it in xrange(self.n_iters):
+        for it in range(self.n_iters):
             new_lat_messages = self.new_messages()
             delta = new_lat_messages - self.lat_messages
             self.lat_messages += self.damping * delta
